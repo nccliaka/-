@@ -6,40 +6,45 @@
   <title>內城社區體驗預約系統</title>
   <style>
     body {
-      font-family: "Microsoft JhengHei", sans-serif;
-      background-color: #f2f4f8;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background-color: #eef2f6;
       margin: 0;
       padding: 20px;
+      color: #2c3e50;
     }
 
     h1 {
       text-align: center;
+      font-size: 32px;
       color: #2c3e50;
-      margin-bottom: 30px;
+      margin-bottom: 40px;
+      letter-spacing: 2px;
     }
 
     .card {
-      background-color: white;
-      border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      max-width: 700px;
+      background-color: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      max-width: 720px;
       margin-left: auto;
       margin-right: auto;
     }
 
     .card h2 {
-      color: #34495e;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 5px;
-      margin-bottom: 15px;
+      font-size: 20px;
+      border-left: 4px solid #3498db;
+      padding-left: 10px;
+      margin-bottom: 16px;
+      color: #2c3e50;
     }
 
     label {
       display: block;
-      margin-bottom: 12px;
+      margin-bottom: 18px;
       font-weight: 500;
+      font-size: 15px;
     }
 
     input[type="text"],
@@ -47,15 +52,27 @@
     input[type="date"],
     input[type="time"] {
       width: 100%;
-      padding: 8px 12px;
+      padding: 10px 14px;
       border: 1px solid #ccc;
-      border-radius: 6px;
+      border-radius: 8px;
       box-sizing: border-box;
+      font-size: 14px;
+      transition: border 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    input[type="date"]:focus,
+    input[type="time"]:focus {
+      border-color: #3498db;
+      box-shadow: 0 0 4px rgba(52, 152, 219, 0.3);
+      outline: none;
     }
 
     input[type="radio"],
     input[type="checkbox"] {
       margin-right: 6px;
+      transform: scale(1.2);
     }
 
     fieldset {
@@ -67,21 +84,30 @@
     button {
       background-color: #3498db;
       color: white;
-      padding: 12px 24px;
+      padding: 14px 28px;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 16px;
       cursor: pointer;
       display: block;
-      margin: 30px auto;
+      margin: 40px auto 20px auto;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
     }
 
     button:hover {
       background-color: #2980b9;
+      box-shadow: 0 4px 12px rgba(41, 128, 185, 0.3);
     }
 
     .hidden {
       display: none;
+    }
+
+    #timeslots label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      line-height: 1.6;
     }
   </style>
 </head>
@@ -143,15 +169,32 @@
     let DATA = "00000000";
     let N = 0;
 
+    window.addEventListener('DOMContentLoaded', () => {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const minDate = `${yyyy}-${mm}-${dd}`;
+      document.getElementById("date").setAttribute("min", minDate);
+    });
+
     function updateDataKey() {
-      const date = document.getElementById("date").value;
-      if (date) {
-        DATA = date.replaceAll("-", "");
-        if (!arr[DATA]) {
-          arr[DATA] = [0, 30, 30, 30, 30]; // 預設每個時段 30 台牛車
-        }
-        checkTimeslots();
+      const dateInput = document.getElementById("date");
+      const selectedDate = new Date(dateInput.value);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDate < today) {
+        alert("請選擇今天以後的日期！");
+        dateInput.value = "";
+        return;
       }
+
+      DATA = dateInput.value.replaceAll("-", "");
+      if (!arr[DATA]) {
+        arr[DATA] = [0, 30, 30, 30, 30];
+      }
+      checkTimeslots();
     }
 
     function toggleSections() {
@@ -174,7 +217,7 @@
       N = count;
       if (!arr[DATA]) return;
 
-      const slots = ["08:30~10:30", "10:30~12:30", "13:00~15:00", "15:00~17:00"];
+      const slots = [" 08:30~10:30", " 10:30~12:30", " 13:00~15:00", " 15:00~17:00"];
       const container = document.getElementById("timeslots");
       container.innerHTML = "";
 
@@ -196,6 +239,11 @@
 
       if (!name || !phone || !date) {
         alert("請填寫姓名、電話與日期！");
+        return;
+      }
+
+      if (!/^09\d{8}$/.test(phone)) {
+        alert("請輸入有效的台灣手機號碼（如：0912345678）");
         return;
       }
 
@@ -254,14 +302,25 @@
           }
           alert("預約成功！資料已儲存");
           checkTimeslots();
+          resetForm();
         } else {
           alert("提交失敗：" + response.error);
+          console.error("錯誤回應：", response.error);
         }
       })
       .catch(error => {
         alert("網路錯誤或連線失敗！");
-        console.error("錯誤:", error);
+        console.error("提交錯誤詳細內容：", error);
       });
+    }
+
+    function resetForm() {
+      document.getElementById("name").value = "";
+      document.getElementById("phone").value = "";
+      document.getElementById("date").value = "";
+      document.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
+      toggleSections();
+      document.getElementById("timeslots").innerHTML = "";
     }
   </script>
 </body>
